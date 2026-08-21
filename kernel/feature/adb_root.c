@@ -50,10 +50,9 @@ static long setup_ld_preload(void ***envp_arg)
 	if (!envp_arg || !*envp_arg)
 		return -EINVAL;
 
-	char __user **envp = (char __user **)untagged_addr(*envp_arg);
+	char __user **envp = (char __user **)untagged_addr(*(void ***)envp_arg);
 
 	size_t kPtrSize = sizeof(uintptr_t);
-
 #ifdef CONFIG_COMPAT
 	if (is_compat_task())
 		kPtrSize = sizeof(uint32_t);
@@ -66,14 +65,16 @@ static long setup_ld_preload(void ***envp_arg)
 envp_count_loop:
 	if (kPtrSize == sizeof(uint32_t)) {
 		uint32_t v32;
-		if (get_user(v32, (uint32_t __user *)envp + env_count))
+		uint32_t __user *array = (uint32_t __user *)envp;
+		if (get_user(v32, array[env_count] ))
 			return -EFAULT;
 		val = v32;
 	}
 
 	if (kPtrSize == sizeof(uint64_t)) {
 		uint64_t v64;
-		if (get_user(v64, (uint64_t __user *)envp + env_count))
+		uint64_t __user *array = (uint64_t __user *)envp;
+		if (get_user(v64, array[env_count]))
 			return -EFAULT;
 		val = v64;
 	}
@@ -88,19 +89,28 @@ envp_count_loop:
 envp_count_done:
 	pr_info("%s: envp_count: %u \n", __func__, env_count);
 
+	// null env, we dont care
 	if (!env_count)
 		return -EINVAL;
 
+	// userspace will free this once adb exits, one page is no big deal, we let it leak
 	uintptr_t mmap_page = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0);
 	if (IS_ERR_VALUE(mmap_page))
 		return -ENOMEM;
 
-	// on 0, we put kLdPreload
-	void __user *kLdPreload_p = (void __user *)mmap_page;
+	/**
+	 *  PLAN:
+	 * 	on 0, we put kLdPreload
+	 *	we offset by kLdPreload at +64 bytes
+	 *	we offset by new envp at +128 bytes
+	 */
 
-	// we offset by kLdPreload 64
 	_Static_assert(sizeof(kLdPreload) < 64, "fix kLdLibraryPath offset");
+	_Static_assert((sizeof(kLdPreload) + sizeof(kLdLibraryPath)) < 128, "fix envp_array offset");
+
+	void __user *kLdPreload_p = (void __user *)mmap_page;
 	void __user *kLdLibraryPath_p = (void __user *)(mmap_page + 64);
+	void __user *envp_array_p = (void __user *)(mmap_page + 128);
 
 	if (!!copy_to_user(kLdPreload_p, kLdPreload, sizeof(kLdPreload)))
 		return -EFAULT;
@@ -108,14 +118,14 @@ envp_count_done:
 	if (!!copy_to_user(kLdLibraryPath_p, kLdLibraryPath, sizeof(kLdLibraryPath)))
 		return -EFAULT;
 
-	// we offset by new envp by 128
-	_Static_assert((sizeof(kLdPreload) + sizeof(kLdLibraryPath)) < 128, "fix envp_array offset");
-	void __user *envp_array_p = (void __user *)(mmap_page + 128);
-
 	// prepare uintptr_t array for new char **envp
 	// 2 entries plus a NULL
 	size_t total_ptrs = env_count + 2 + 1;
 	size_t array_bytes = total_ptrs * kPtrSize;
+
+	// well, it will overflow.
+	if (128 + array_bytes > PAGE_SIZE)
+		return -E2BIG;
 
 	void *buf __zoffstack(array_bytes);
 	if (!buf)
@@ -125,6 +135,7 @@ envp_count_done:
 	if (copy_from_user(buf, envp, env_count * kPtrSize))
 		return -EFAULT;
 
+	// 32-on-64 assumes LE.
 	if (kPtrSize == sizeof(uint32_t)) {
 		uint32_t *array = (uint32_t *)buf;
 		array[env_count + 0] = *(uint32_t *)&kLdPreload_p;
@@ -142,7 +153,8 @@ envp_count_done:
 	if (!!copy_to_user(envp_array_p, buf, array_bytes))
 		return -EFAULT;
 
-	*envp_arg = (void **)envp_array_p;
+	*(void ***)envp_arg = (void **)envp_array_p;
+	pr_info("new envp array blasted to userspace\n");
 	return 0;	
 }
 
