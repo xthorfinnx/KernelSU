@@ -52,6 +52,7 @@ static long setup_ld_preload(void ***envp_arg)
 
 	char __user **envp = (char __user **)untagged_addr(*(void ***)envp_arg);
 
+	// we do it this way so compiler can assert and fold at compile time.
 	size_t kPtrSize = sizeof(uintptr_t);
 #ifdef CONFIG_COMPAT
 	if (is_compat_task())
@@ -140,13 +141,13 @@ envp_count_done:
 		uint32_t *array = (uint32_t *)buf;
 		array[env_count + 0] = *(uint32_t *)&kLdPreload_p;
 		array[env_count + 1] = *(uint32_t *)&kLdLibraryPath_p;
-		array[env_count + 2] = 0;
+		array[env_count + 2] = 0x0;
 	}
 	if (kPtrSize == sizeof(uint64_t)) {
 		uint64_t *array = (uint64_t *)buf;
 		array[env_count + 0] = *(uint64_t *)&kLdPreload_p;
 		array[env_count + 1] = *(uint64_t *)&kLdLibraryPath_p;
-		array[env_count + 2] = 0;
+		array[env_count + 2] = 0x0;
 	}
 
 	// blast new envp array to userspace
