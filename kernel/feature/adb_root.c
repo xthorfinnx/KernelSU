@@ -39,7 +39,7 @@ static long is_libadbroot_ok()
 	return ret;
 }
 
-#include <uapi/asm-generic/mman-common.h>
+#include <linux/mman.h>
 
 // NOTE: envp is (void ***), void * const char __user * const char __user *
 static long setup_ld_preload(void ***envp_arg)
@@ -94,7 +94,7 @@ envp_count_done:
 	if (!env_count)
 		return -EINVAL;
 
-	// userspace will free this once adb exits, one page is no big deal, we let it leak
+	// this is freed once adb exits/gets replaced (sys_exit / execve->bprm), one page is no big deal, we leave it mapped
 	uintptr_t mmap_page = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0);
 	if (IS_ERR_VALUE(mmap_page))
 		return -ENOMEM;
