@@ -39,6 +39,67 @@ static long is_libadbroot_ok()
 	return ret;
 }
 
+// NOTE: envp is (void ***), void * const char __user * const char __user *
+static long setup_ld_preload(void ***envp_arg)
+{
+	static const char kLdPreload[] = "LD_PRELOAD=/data/adb/ksu/lib/libadbroot.so";
+	static const char kLdLibraryPath[] = "LD_LIBRARY_PATH=/data/adb/ksu/lib";
+
+	if (!envp_arg || !*envp_arg)
+		return -EINVAL;
+
+	char __user **envp = (char __user **)untagged_addr(*envp_arg);
+
+	size_t kPtrSize = sizeof(uintptr_t);
+
+#ifdef CONFIG_COMPAT
+	if (is_compat_task())
+		kPtrSize = sizeof(uint32_t);
+#endif
+
+	// lets do this like gtk. we have the ***envp
+	size_t env_count = 0;
+	uintptr_t val = 0;
+
+envp_count_loop:
+	if (kPtrSize == sizeof(uint32_t)) {
+		uint32_t v32;
+		if (get_user(v32, (uint32_t __user *)envp + env_count))
+			goto out_fault;
+		val = v32;
+	}
+
+	if (kPtrSize == sizeof(uint64_t)) {
+		uint64_t v64;
+		if (get_user(v64, (uint64_t __user *)envp + env_count))
+			goto out_fault;
+		val = v64;
+	}
+
+	if (!val)
+		goto envp_count_done;
+
+	env_count = env_count + 1;
+
+	goto envp_count_loop;
+
+envp_count_done:
+	pr_info("%s: envp_count: %u \n", __func__, env_count);
+
+	// then vm_mmap strings first, offset by 64 should be enough
+	// copy userspace envp array addressed
+	// add our vm_mmap and vm_mmap + 64
+	// blast the whole envp array abck to userspace
+
+
+
+
+	return 0;
+
+out_fault:
+	return -EFAULT;
+}
+
 static noinline void do_ksu_adb_root_execve_user(void *restrict filename, void *restrict envp_in)
 {
 	if (likely(ksu_is_seccomp_enabled()))
