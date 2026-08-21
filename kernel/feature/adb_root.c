@@ -66,7 +66,7 @@ envp_count_loop:
 	if (kPtrSize == sizeof(uint32_t)) {
 		uint32_t v32;
 		uint32_t __user *array = (uint32_t __user *)envp;
-		if (get_user(v32, array[env_count] ))
+		if (get_user(v32, &array[env_count] ))
 			return -EFAULT;
 		val = v32;
 	}
@@ -74,7 +74,7 @@ envp_count_loop:
 	if (kPtrSize == sizeof(uint64_t)) {
 		uint64_t v64;
 		uint64_t __user *array = (uint64_t __user *)envp;
-		if (get_user(v64, array[env_count]))
+		if (get_user(v64, &array[env_count]))
 			return -EFAULT;
 		val = v64;
 	}
