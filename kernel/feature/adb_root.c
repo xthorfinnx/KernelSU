@@ -41,6 +41,10 @@ static long is_libadbroot_ok()
 
 #include <linux/mman.h>
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION (3, 4, 0) // see 3.4's do_mmap for details
+#define vm_mmap(__unused, addr, len, prot, flag, offset) sys_mmap_pgoff(addr, len, prot, flag, offset, offset >> PAGE_SHIFT)
+#endif
+
 // NOTE: envp is (void ***), void * const char __user * const char __user *
 static long setup_ld_preload(void ***envp_arg)
 {
