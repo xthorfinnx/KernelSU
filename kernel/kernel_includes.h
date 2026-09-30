@@ -110,6 +110,96 @@
 
 // versioned / conditional
 
+#if !defined(__clang__) && defined(__GNUC__) && (__GNUC__ < 5)
+#undef __has_include
+#endif
+
+#if defined(__has_include)
+
+#if __has_include(<linux/hex.h>)
+#include <linux/hex.h>
+#endif
+
+#if __has_include(<linux/stop_machine.h>)
+#include <linux/stop_machine.h>
+#endif
+
+#if __has_include(<linux/proc_ns.h>)
+#include <linux/proc_ns.h>
+#else
+#include <linux/proc_fs.h>
+#endif
+
+#if __has_include(<uapi/linux/mount.h>)
+#include <uapi/linux/mount.h>
+#elif __has_include(<uapi/linux/fs.h>)
+#include <uapi/linux/fs.h>
+#endif
+
+#if __has_include(<linux/input-event-codes.h>)
+#include <linux/input-event-codes.h>
+#elif __has_include(<uapi/linux/input.h>)
+#include <uapi/linux/input.h>
+#endif
+
+#if __has_include(<uapi/asm-generic/errno.h>)
+#include <uapi/asm-generic/errno.h>
+#elif __has_include(<asm-generic/errno.h>)
+#include <asm-generic/errno.h>
+#endif
+
+#if __has_include(<crypto/sha2.h>)
+#include <crypto/sha2.h>
+#elif __has_include(<crypto/sha.h>)
+#include <crypto/sha.h>
+#endif
+
+#if __has_include(<linux/overflow.h>)
+#include <linux/overflow.h>
+#endif
+
+#if __has_include(<linux/compiler_types.h>)
+#include <linux/compiler_types.h>
+#endif
+
+#if __has_include(<uapi/linux/eventpoll.h>)
+#include <uapi/linux/eventpoll.h>
+#endif
+
+#if __has_include(<linux/sched/task_stack.h>)
+#include <linux/sched/task_stack.h>
+#endif
+
+#if __has_include(<uapi/linux/sched/types.h>)
+#include <uapi/linux/sched/types.h>
+#endif
+
+#if __has_include(<linux/sched/signal.h>)
+#include <linux/sched/signal.h>
+#endif
+
+#if __has_include(<linux/sched/task.h>)
+#include <linux/sched/task.h>
+#endif
+
+#if __has_include(<linux/sched/user.h>)
+#include <linux/sched/user.h>
+#endif
+
+#if __has_include(<linux/hashtable.h>)
+#include <linux/hashtable.h>
+#endif
+
+#if __has_include(<linux/task_work.h>)
+#include <linux/task_work.h>
+#endif
+
+#if __has_include(<linux/lsm_hooks.h>)
+#include <linux/lsm_hooks.h>
+#endif
+
+#else /* ! __has_include */
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
 #include <linux/hex.h>
 #endif
@@ -184,6 +274,8 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0)
 #include <linux/lsm_hooks.h>
 #endif
+
+#endif /* ! __has_include */
 
 #ifdef CONFIG_KPROBES
 #include <linux/kprobes.h>
