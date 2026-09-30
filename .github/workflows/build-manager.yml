@@ -115,7 +115,7 @@ jobs:
             pack_ksuinit: true
           - target: armv7-linux-androideabi
             pack_lkm: false
-            pack_ksuinit: false
+            pack_ksuinit: true
           - target: x86_64-linux-android
             pack_lkm: false
             pack_ksuinit: false
