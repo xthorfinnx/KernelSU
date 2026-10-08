@@ -19,6 +19,9 @@
 #endif // MODULE
 
 #include "kernel_includes.h"
+#ifdef CONFIG_KSU_SUSFS
+#include <linux/susfs.h>
+#endif
 
 // selinux includes
 #include "avc_ss.h"
@@ -252,6 +255,11 @@ static int __init kernelsu_init(void)
 #ifdef KSU_CAN_USE_MODULE_BLACKLIST
 	ksu_module_blacklist_init(); // Block modules early, before vendor modules are loaded in second stage.
 #endif
+
+#ifdef CONFIG_KSU_SUSFS
+	susfs_init();
+#endif
+
 	// register features
 	ksu_feature_init();
 	ksu_sucompat_init();
