@@ -19,6 +19,9 @@
 #endif // MODULE
 
 #include "kernel_includes.h"
+#ifdef CONFIG_KSU_SUSFS
+#include <linux/susfs.h>
+#endif
 
 // selinux includes
 #include "avc_ss.h"
@@ -262,6 +265,10 @@ static int __init kernelsu_init(void)
 		pr_err("prepare cred failed!\n");
 		return -ENOSYS;
 	}
+
+#ifdef CONFIG_KSU_SUSFS
+	susfs_init();
+#endif
 
 	// register features
 	ksu_feature_init();
