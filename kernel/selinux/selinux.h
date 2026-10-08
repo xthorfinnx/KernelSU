@@ -24,6 +24,10 @@ void cache_sid(void);
 bool is_task_ksu_domain(const struct cred* cred);
 
 bool is_ksu_domain();
+#ifdef CONFIG_KSU_SUSFS
+bool susfs_is_current_ksu_domain(void);
+void susfs_set_batch_sid(void);
+#endif
 
 bool is_zygote(const struct cred* cred);
 
